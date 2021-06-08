@@ -138,19 +138,57 @@ const signUpUser = (req, res) => {
 };
 
 
-deleteImage = (imageName) => {
-    const bucket = admin.storage().bucket();
-    const path = `${imageName}`
-    return bucket.file(path).delete()
-    .then(() => {
-        return
-    })
-    .catch((error) => {
-        return
-    })
+
+// Gets user details
+const getUserDetail = (req, res) => {
+    
+    let userData = {};
+	db
+		.doc(`/users/${req.user.username}`)
+		.get()
+		.then((doc) => {
+			if (doc.exists) {
+                userData.userCredentials = doc.data();
+                return res.json(userData);
+			}	
+		})
+		.catch((error) => {
+			console.error(error);
+			return res
+                    .status(500)
+                    .json({
+                         error: error.code 
+                    });
+		});
+};
+
+
+
+// Updates user details based on field(s) chosen
+const updateUserDetails = (req, res) => {
+
+    let document = db.collection('users').doc(`${req.user.username}`);
+
+    document
+        .update(req.body)
+        .then(()=> {
+            res.json({
+                message: 'Updated successfully'
+            });
+        })
+        .catch((error) => {
+            console.error(error);
+            return res
+                    .status(500)
+                    .json({ 
+                        message: "Cannot update the value"
+                    });
+        });
 }
 
-// Upload profile picture
+
+
+// Upload user profile picture to Firebase Storage
 const uploadProfilePhoto = (req, res) => {
     const BusBoy = require('busboy');
 	const path = require('path');
@@ -171,6 +209,7 @@ const uploadProfilePhoto = (req, res) => {
 		imageToBeUploaded = { filePath, mimetype };
 		file.pipe(fs.createWriteStream(filePath));
     });
+
     deleteImage(imageFileName);
 	busboy.on('finish', () => {
 		admin
@@ -208,50 +247,20 @@ const uploadProfilePhoto = (req, res) => {
 	busboy.end(req.rawBody);
 };
 
-// Using the firebase doc().get() module to derive the user details
-const getUserDetail = (req, res) => {
-    
-    let userData = {};
-	db
-		.doc(`/users/${req.user.username}`)
-		.get()
-		.then((doc) => {
-			if (doc.exists) {
-                userData.userCredentials = doc.data();
-                return res.json(userData);
-			}	
-		})
-		.catch((error) => {
-			console.error(error);
-			return res
-                    .status(500)
-                    .json({
-                         error: error.code 
-                    });
-		});
+
+// Delete user image
+deleteImage = (imageName) => {
+    const bucket = admin.storage().bucket();
+    const path = `${imageName}`
+    return bucket.file(path).delete()
+    .then(() => {
+        return
+    })
+    .catch((error) => {
+        return
+    })
 };
 
-
-const updateUserDetails = (req, res) => {
-
-    let document = db.collection('users').doc(`${req.user.username}`);
-
-    document
-        .update(req.body)
-        .then(()=> {
-            res.json({
-                message: 'Updated successfully'
-            });
-        })
-        .catch((error) => {
-            console.error(error);
-            return res
-                    .status(500)
-                    .json({ 
-                        message: "Cannot update the value"
-                    });
-        });
-}
 
 
 module.exports = {
@@ -260,4 +269,4 @@ module.exports = {
     uploadProfilePhoto,
     getUserDetail,
     updateUserDetails,
-}
+};
